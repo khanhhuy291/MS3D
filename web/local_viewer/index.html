@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MS3D · Local Inspector</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23101e29'/%3E%3Cpath d='m8 13 12-6 12 6v14l-12 6-12-6Zm0 0 12 7 12-7M20 20v13' fill='none' stroke='%2368dec6' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">{"imports":{"three":"/vendor/three.module.js"}}</script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="MS3D Local Inspector"><span class="brand-mark">M<span>3</span></span><div>MS3D<span>LOCAL INSPECTOR</span></div><i class="live-dot"></i></a>
+    <div class="sidebar-scroll">
+      <section><div class="section-heading"><h2>Kết quả</h2><span id="caseTotal" class="subtle">—</span></div><div id="caseList" class="case-list"></div><p id="caseDescription" class="hint"></p></section>
+      <section>
+        <div class="section-heading"><h2>Bộ lọc</h2><button id="resetFilters" class="text-button">Đặt lại</button></div>
+        <label class="slider-label" for="score">Score tối thiểu <output id="scoreValue">0.30</output></label>
+        <input id="score" type="range" min="0.1" max="0.99" value="0.3" step="0.01">
+        <div class="class-filters"><label><input type="checkbox" class="class-check" value="1" checked><i class="dot vehicle"></i>Vehicle</label><label><input type="checkbox" class="class-check" value="2" checked><i class="dot pedestrian"></i>Pedestrian</label><label><input type="checkbox" class="class-check" value="3" checked><i class="dot cyclist"></i>Cyclist</label></div>
+        <label class="field-label" for="groupFilter">Nguồn hỗ trợ</label>
+        <select id="groupFilter"><option value="all">Tất cả box</option><option value="single">Chỉ singleton · 1 nguồn</option><option value="pair">Chỉ nhóm 2 nguồn</option><option value="triple">Chỉ nhóm 3 nguồn</option><option value="unknown">Nguồn chưa được lưu</option></select>
+        <label class="field-label" for="sourceFilter">Có đóng góp từ</label>
+        <select id="sourceFilter"><option value="all">Tất cả nguồn</option><option value="lyft">Lyft</option><option value="nuscenes">nuScenes OpenPCDet</option><option value="bevfusion">BEVFusion</option><option value="centerpoint">CenterPoint</option><option value="voxelrcnn">VoxelRCNN · fusion BCV</option></select>
+      </section>
+      <section>
+        <div class="section-heading"><h2>Point cloud</h2><label class="switch-label"><input type="checkbox" id="showPoints" checked>Hiện</label></div>
+        <label class="field-label" for="pointBudget">Số điểm tối đa</label><select id="pointBudget"><option value="20000">20.000 · nhẹ</option><option value="60000" selected>60.000 · cân bằng</option><option value="120000">120.000 · đầy đủ</option></select>
+        <label class="slider-label" for="pointSize">Kích thước điểm <output id="pointSizeValue">1.5</output></label><input id="pointSize" type="range" min="0.7" max="4" step="0.1" value="1.5">
+        <div class="two-fields"><label for="zMin">Z thấp nhất<input id="zMin" type="number" value="-3" step="0.5"></label><label for="zMax">Z cao nhất<input id="zMax" type="number" value="6" step="0.5"></label></div>
+        <div class="inline-checks"><label><input id="showGrid" type="checkbox" checked>Lưới 10 m</label><label><input id="showScores" type="checkbox">Score trên BEV</label></div>
+        <p class="hint">Hiển thị 1 sweep hiện tại. VoxelRCNN đã dùng tối đa 10 sweeps khi inference.</p>
+      </section>
+      <section class="selection-section"><div class="section-heading"><h2>Box đang chọn</h2><button id="clearSelection" class="text-button">Bỏ chọn</button></div><div id="selectionDetails" class="selection-empty">Bấm vào box trong BEV, 3D hoặc danh sách để xem chi tiết.</div></section>
+      <div class="coordinate-note"><span class="coordinate-glyph">↗</span><div><strong>Hệ tọa độ xe · mét</strong><span>X phía trước · Y bên trái · Z lên trên.<br>Point cloud và box đã cùng hệ tọa độ.</span></div></div>
+    </div>
+    <div class="sidebar-footer"><span class="live-dot"></span>Dữ liệu local · chỉ đọc</div>
+  </aside>
+  <main>
+    <header class="topbar"><div><div class="eyebrow">POINT CLOUD / EXPERIMENT REVIEW</div><h1>Detection lab<span class="badge" id="frameCountBadge">— frames</span></h1></div><div class="header-actions"><button id="exportJson" class="button secondary">↓ JSON</button><button id="screenshot" class="button">↓ Ảnh BEV + 3D</button></div></header>
+    <section class="framebar">
+      <div class="playback"><button id="previous" class="icon-button" title="Frame trước · ←" aria-label="Frame trước">‹</button><button id="play" class="icon-button play" title="Phát / dừng · Space" aria-label="Phát">▶</button><button id="next" class="icon-button" title="Frame sau · →" aria-label="Frame sau">›</button></div>
+      <div class="frame-identity"><strong id="frameName">Đang nạp dữ liệu…</strong><span id="frameTimestamp">—</span></div>
+      <input id="timeline" aria-label="Chọn frame" type="range" min="0" max="203" value="0" step="1">
+      <div class="frame-jump"><label for="frameInput">FRAME</label><input id="frameInput" aria-label="Số frame" type="number" min="0" value="0"><span id="frameMax">/ 203</span></div>
+      <select id="playbackSpeed" aria-label="Tốc độ phát"><option value="1">1 fps</option><option value="2" selected>2 fps</option><option value="5">5 fps</option><option value="10">10 fps</option></select>
+    </section>
+    <section class="view-toolbar"><div class="active-result"><i class="dot vehicle"></i><strong id="activeTitle">—</strong><span id="visibleCount" class="badge">— box</span></div><div class="compare-controls"><label><input id="compareEnabled" type="checkbox">Đối chiếu</label><select id="compareCase" aria-label="Kết quả đối chiếu"></select><span class="compare-swatch"></span></div></section>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <div id="fatalError" class="error-banner" role="alert" hidden></div>
+    <section class="views">
+      <article class="view-panel"><div class="panel-heading"><div><span class="panel-index">01</span><h2>Bird’s-eye view</h2><span class="subtle">X ↑ &nbsp; Y ←</span></div><div><button id="bevZoomOut" class="small-button" aria-label="Thu nhỏ BEV">−</button><button id="bevZoomIn" class="small-button" aria-label="Phóng to BEV">+</button><button id="bevReset" class="small-button">Đặt lại</button></div></div><div class="canvas-wrap" id="bevWrap"><canvas id="bevCanvas" aria-label="BEV point cloud và detection boxes"></canvas><div class="canvas-badge" id="bevScale">±40 m</div><div class="view-help">Cuộn: zoom · Kéo: pan · Bấm: chọn box</div></div></article>
+      <article class="view-panel"><div class="panel-heading"><div><span class="panel-index">02</span><h2>3D scene</h2><span class="subtle" id="renderStatus">WebGL</span></div><div class="camera-presets"><button class="small-button active" data-camera="iso">Phối cảnh</button><button class="small-button" data-camera="top">Trên</button><button class="small-button" data-camera="front">Trước</button><button class="small-button" data-camera="left">Trái</button></div></div><div class="canvas-wrap" id="threeWrap"><div id="threeError" class="three-error" hidden></div><div class="canvas-badge">X <i class="axis x">↗</i> &nbsp; Y <i class="axis y">↖</i> &nbsp; Z <i class="axis z">↑</i></div><div class="view-help">Kéo trái: xoay · Kéo phải: pan · Cuộn: zoom</div></div></article>
+    </section>
+    <section class="bottom-section"><div class="box-table-panel"><div class="table-heading"><h2>Danh sách box <span id="tableCount" class="subtle">0</span></h2><span class="subtle">Bấm một hàng để chọn · double-click box để focus 3D</span></div><div class="table-scroll"><table><thead><tr><th>ID</th><th>Lớp</th><th>Score</th><th>Nguồn</th><th>X / Y / Z (m)</th><th>DX × DY × DZ (m)</th></tr></thead><tbody id="boxTable"></tbody></table></div></div><div class="stats-panel"><h2>Trong frame này</h2><div id="classStats" class="class-stats"></div><div class="stat-line"><span>Điểm hiển thị</span><strong id="pointCount">—</strong></div><div class="stat-line"><span>Singleton / nhóm 2 / nhóm 3</span><strong id="groupCount">—</strong></div><div class="legend-note"><span class="dashed-line"></span>Singleton <span class="solid-line"></span>Nhóm nhiều nguồn</div><p class="hint">Số box là đầu ra mô hình, không phải độ chính xác. Không có ground truth trong viewer này.</p></div></section>
+    <footer class="main-footer"><span id="loadStatus">Đang kết nối local API…</span><span>← → đổi frame &nbsp;·&nbsp; Space phát/dừng &nbsp;·&nbsp; R đặt lại camera</span></footer>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

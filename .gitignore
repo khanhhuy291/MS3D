@@ -31,3 +31,5 @@ model_zoo
 demo_data
 *.csv
 ps_labels
+
+data_raw/*
